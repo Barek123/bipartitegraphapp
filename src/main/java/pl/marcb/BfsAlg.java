@@ -26,6 +26,9 @@ public class BfsAlg {
         String firstValue = getFirstValue();
         generateGrayPoints();
         List<Link> linksFromValue = getLinksFromValue(firstValue);
+        points = points.stream().map(c -> {
+            return c.getValue().equals("1") ? new Point(c.value, ColorEnum.blue) : c;
+        }).collect(Collectors.toList());
         generatePoints(1L);
         String st = "";
     }

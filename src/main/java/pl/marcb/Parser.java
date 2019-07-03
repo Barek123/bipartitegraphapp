@@ -20,4 +20,9 @@ public class Parser {
         MutableGraph g = guru.nidi.graphviz.parse.Parser.read(new File(graphFile));
         Graphviz.fromGraph(g).width(700).render(Format.PNG).toFile(new File(imageFile));
     }
+
+    public void parseFile(String dotFile) throws IOException {
+        MutableGraph g = guru.nidi.graphviz.parse.Parser.read(dotFile);
+        Graphviz.fromGraph(g).width(700).render(Format.PNG).toFile(new File(imageFile));
+    }
 }

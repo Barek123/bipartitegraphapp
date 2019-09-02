@@ -11,6 +11,8 @@ public class Main {
 //                "C:\\Users\\bartek\\Desktop\\mgr\\bipartitegraphapp\\example\\ex4-1.png").parseFile();
     }
 
+
+
 }
 
 

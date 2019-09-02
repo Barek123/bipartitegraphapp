@@ -1,46 +1,146 @@
 package pl.marcb;
 
+import pl.marcb.lib.GifSequenceWriter;
+
+import javax.imageio.ImageIO;
+import javax.imageio.stream.FileImageOutputStream;
+import javax.imageio.stream.ImageOutputStream;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class BfsAlg {
-    public String path;
     private List<String> lines = new ArrayList<>();
 
     private List<Point> points = new ArrayList<>();
 
-    private int genIndex = 0;
+    private ColorEnum DEFAULT_COLOR = ColorEnum.gray;
+    private ColorEnum COLOR_1 = ColorEnum.blue;
+    private ColorEnum COLOR_2 = ColorEnum.green;
+    private ColorEnum ERROR_COLOR = ColorEnum.red;
+
+    private long stepIndex = 1;
+    private boolean error = false;
+
+    private List<String> images = new ArrayList<>();
 
     public BfsAlg(String path) throws IOException {
-        this.path = path;
         lines = Files.readAllLines(Paths.get(path));
     }
 
-    public void generate() throws IOException {
-        String firstValue = getFirstValue();
-        generateGrayPoints();
-        List<Link> linksFromValue = getLinksFromValue(firstValue);
-        points = points.stream().map(c -> {
-            return c.getValue().equals("1") ? new Point(c.value, ColorEnum.blue) : c;
-        }).collect(Collectors.toList());
-        generatePoints(1L);
-        String st = "";
+    void generate() throws IOException {
+        generateDistinctGrayPoints();
+        prepareDirectory();
+        stepIndex = 0L;
+        error = false;
+        if (points.size() > 0) {
+            saveStepToFile(stepIndex);
+            stepIndex ++;
+            points.get(0).setColor(COLOR_1); // set color to first element
+            nextStep(points.get(0));
+        }
+        createGif();
     }
 
+    private void nextStep(Point point) throws IOException {
+        if (!error) {
+            ColorEnum newColor = (point.getColor().equals(COLOR_1)) ? COLOR_2 : COLOR_1;
 
-    private void generatePoints(Long index) throws IOException {
+            List<Point> linksForPoint = getLinksForPointAndFilterByColor(point, newColor);
+
+            if (linksForPoint.size() > 0) {
+                if (linksForPoint.stream().anyMatch(c -> !c.getColor().equals(DEFAULT_COLOR))) {
+                    handleError(point);
+                } else {
+                    checkConnectedPoints(linksForPoint, newColor);
+                }
+            } else {
+                handleSuccess();
+            }
+        }
+    }
+
+    private void handleSuccess() throws IOException {
+        System.out.println("finished graph is bipartite");
+    }
+
+    private void checkConnectedPoints(List<Point> linksForPoint, ColorEnum color) throws IOException {
+        linksForPoint.forEach(c -> setColorForPoint(c, color));
+        saveStepToFile(stepIndex);
+        stepIndex++;
+        for (int i = 0; i < linksForPoint.size(); i++) {
+            nextStep(linksForPoint.get(i));
+            stepIndex++;
+        }
+    }
+
+    private void handleError(Point point) throws IOException {
+        this.setColorForPoint(point, ERROR_COLOR);
+        System.out.println("finished graph is not bipartite");
+        error = true;
+        saveStepToFile(stepIndex);
+        stepIndex++;
+    }
+
+    private void setColorForPoint(Point point, ColorEnum color) {
+        for (int i = 0; i < points.size(); i++) {
+            if (points.get(i).getValue().equals(point.getValue())) {
+                points.get(i).setColor(color);
+            }
+        }
+    }
+
+    private void generateDistinctGrayPoints() {
+        points = lines.stream().map(c -> Arrays.asList(c.split(" ")))
+                .flatMap(Collection::stream).collect(Collectors.toSet())
+                .stream().map(c -> new Point(c, DEFAULT_COLOR)).collect(Collectors.toList());
+    }
+
+    private List<Point> getLinksForPointAndFilterByColor(Point point, ColorEnum filteredColor) {
+        return getLinksForPoint(point).stream()
+                .filter(c -> !c.getColor().equals(filteredColor))
+                .collect(Collectors.toList());
+    }
+
+    private List<Point> getLinksForPoint(Point point) {
+        Set<String> result = new HashSet<>();
+        lines.stream().map(c -> c.split(" "))
+                .filter(c -> Arrays.asList(c).contains(point.value))
+                .forEach(c -> result.addAll(getConnectedPointsInLine(point.value, c)));
+        return result.stream().map(this::getPointByValue).collect(Collectors.toList());
+    }
+
+    private Point getPointByValue(String value) {
+        return this.points.stream().filter(c -> c.value.equals(value)).findFirst().orElse(null);
+    }
+
+    private Set<String> getConnectedPointsInLine(String point, String[] line) {
+        Set<String> result = new HashSet<>(); // set for distinct result
+        for (int i = 0; i < line.length; i++) {
+            if (line[i].equals(point)) {
+                if (line.length > i + 1) { // get next point
+                    result.add(line[i + 1]);
+                }
+                if (i - 1 >= 0) { //get previous point
+                    result.add(line[i - 1]);
+                }
+            }
+        }
+        return result;
+    }
+
+    private void saveStepToFile(Long index) throws IOException {
         StringBuilder sb = new StringBuilder();
         sb.append("graph {").append("\n");
 
         for (int i = 0; i < points.size(); i++) {
             String value = points.get(i).value;
-            sb.append(value + "[color = " + getPointColor(value) + "]");
+            sb.append(value + "[color = " + points.get(i).getColor().name() + "]");
         }
         sb.append("\n\n");
 
@@ -50,34 +150,41 @@ public class BfsAlg {
         }
         sb.append("}");
 
-        new Parser("C:\\Users\\bartek\\Desktop\\mgr\\bipartitegraphapp\\example\\graph2.dot",
-                "C:\\Users\\bartek\\Desktop\\mgr\\bipartitegraphapp\\example\\ex4-" + index + ".png").parseFile(sb.toString());
+        String fileName = "example/result/step-" + index + ".png";
+        this.images.add(fileName);
+        new Parser("example/result/z-graph-for-step" + index + ".dot",
+                fileName).parseFile(sb.toString());
     }
 
-    private String getPointColor(String value) {
-        List<Point> point = points.stream().filter(c -> c.getValue().equals(value)).collect(Collectors.toList());
-        if (point.size() == 0) {
-            return ColorEnum.gray.name();
-        } else {
-            return point.get(0).getColor().name();
+    private void prepareDirectory() {
+        Path path = Paths.get("example/result");
+        if (path.toFile().exists()) {
+            File[] files = path.toFile().listFiles();
+            for (int i = 0; i < files.length; i++) {
+                files[i].delete();
+            }
+            path.toFile().delete();
         }
+        new File("example/result").mkdirs();
     }
 
-    private void generateGrayPoints() {
-        points = lines.stream().map(c -> Arrays.asList(c.split(" ")))
-                .flatMap(Collection::stream).collect(Collectors.toSet())
-                .stream().map(c -> new Point(c, ColorEnum.gray)).collect(Collectors.toList());
-    }
+    private void createGif() throws IOException {
+        if (images.size() > 0) {
+            BufferedImage first = ImageIO.read(new File(images.get(0)));
+            ImageOutputStream output = new FileImageOutputStream(new File("example/result/a-result.gif"));
 
-    private List<Link> getLinksFromValue(String value) {
-        return lines.stream().map(c -> c.split(" "))
-                .filter(c -> c[0].equals(value))
-                .map(c -> new Link(value, c[1]))
-                .collect(Collectors.toList());
-    }
+            GifSequenceWriter writer = new GifSequenceWriter(output, first.getType(), 1000, true);
+            writer.writeToSequence(first);
 
-    private String getFirstValue() {
-        return lines.get(0).split(" ")[0];
+
+            for (int i = 1; i < images.size(); i++) {
+                BufferedImage next = ImageIO.read(new File(images.get(i)));
+                writer.writeToSequence(next);
+            }
+
+            writer.close();
+            output.close();
+        }
     }
 
     public class Point {
@@ -107,7 +214,7 @@ public class BfsAlg {
     }
 
     private enum ColorEnum {
-        gray, blue, red, yellow;
+        gray, blue, green, red, yellow;
     }
 
     public class Link {

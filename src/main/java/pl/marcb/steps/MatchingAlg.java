@@ -21,7 +21,7 @@ public class MatchingAlg implements AlgorithmInterface {
         connectionFromType = getConnectionFromType();
         combinations = getCombinationsForColor(connectionFromType);
         boolean availableMatching = checkConnections();
-        System.out.println("matching availability = " + availableMatching);
+        System.out.println("\nmatching availability = " + availableMatching);
 
     }
 
@@ -31,14 +31,13 @@ public class MatchingAlg implements AlgorithmInterface {
     }
 
     private boolean checkConnectionForPoints(List<String> list) {
-        System.out.println("check for elements " + list.toString());
+        System.out.println("\ncheck for elements " + list.toString());
         Set<String> distinctPoints = new HashSet<>();
         list.forEach(c -> distinctPoints.addAll(getConnectionsForPoint(c)));
         System.out.println("\tavailable connections " + distinctPoints.toString());
         boolean result = list.size() <= distinctPoints.size();
         System.out.println("\t" + list.toString() + " size is " + ((result) ? "smaller or equal" : "bigger" ) + " than " + distinctPoints.toString());
         System.out.println("\t\t" + ((result) ? "correct " : "incorrect" ));
-        System.out.println();
         return result;
     }
 

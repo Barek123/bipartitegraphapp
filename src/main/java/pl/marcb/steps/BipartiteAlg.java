@@ -20,9 +20,16 @@ public class BipartiteAlg implements AlgorithmInterface {
         sharedData.error = false;
         if (sharedData.points.size() > 0) {
             ResultGeneratorUtil.saveBipartiteStepToFile(sharedData.stepIndex);
-            sharedData.stepIndex ++;
+            sharedData.stepIndex++;
             sharedData.points.get(0).setColor(SharedData.COLOR_1); // set color to first element
             nextStep(sharedData.points.get(0));
+        }
+
+        while (sharedData.points.stream().anyMatch(c -> c.getColor().equals(SharedData.DEFAULT_COLOR))) {
+            Optional<Point> first = sharedData.points.stream().filter(c -> c.getColor().equals(SharedData.DEFAULT_COLOR)).findFirst();
+            if (first.isPresent()) {
+                nextStep(first.get());
+            }
         }
     }
 
@@ -45,12 +52,7 @@ public class BipartiteAlg implements AlgorithmInterface {
     }
 
     private void handleSuccess() throws IOException {
-        Optional<Point> first = sharedData.points.stream().filter(c -> c.getColor().equals(SharedData.DEFAULT_COLOR)).findFirst();
-        if (first.isPresent()) {
-            nextStep(first.get());
-        } else {
-            System.out.println("finished graph is bipartite");
-        }
+        System.out.println("finished graph is bipartite");
     }
 
     private void checkConnectedPoints(List<Point> linksForPoint, ColorEnum color) throws IOException {

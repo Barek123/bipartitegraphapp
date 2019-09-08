@@ -6,7 +6,9 @@ import pl.marcb.model.Point;
 import pl.marcb.model.PointDetail;
 import pl.marcb.util.CombinationUtil;
 import pl.marcb.util.ConnectionUtil;
+import pl.marcb.util.ResultGeneratorUtil;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -15,13 +17,12 @@ public class MatchingAlg implements AlgorithmInterface {
     private SharedData sharedData = SharedData.getInstance();
     private List<PointDetail> pointDetailList = new ArrayList<>();
     private List<List<String>> combinations = new ArrayList<>();
-    private List<Link> links = new ArrayList<>();
     private ColorEnum connectionFromType = ColorEnum.gray;
 
     private Queue<Point> queuedPoints = new LinkedList<>();
 
     @Override
-    public void generate() {
+    public void generate() throws Exception {
         if (!sharedData.error) {
             pointDetailList = createPointDetails();
             connectionFromType = getConnectionFromType();
@@ -36,16 +37,16 @@ public class MatchingAlg implements AlgorithmInterface {
         }
     }
 
-    private void searchMatching() {
+    private void searchMatching() throws IOException {
         List<Point> shortElementList = this.sharedData.points.stream().filter(c -> c.getColor().equals(connectionFromType)).collect(Collectors.toList());
 
         queuedPoints.addAll(shortElementList);
-        while (links.size() < shortElementList.size() && !sharedData.error) {
+        while (sharedData.links.size() < shortElementList.size() && !sharedData.error) {
             searchMatchingForNextPoint();
         }
     }
 
-    private void searchMatchingForNextPoint() {
+    private void searchMatchingForNextPoint() throws IOException {
         Point first = queuedPoints.peek();
         if (first != null) {
             Optional<PointDetail> pointDetail = pointDetailList.stream().filter(c -> c.getPoint().getValue().equals(first.getValue())).findFirst();
@@ -53,7 +54,9 @@ public class MatchingAlg implements AlgorithmInterface {
                 List<Point> availableMatch = pointDetail.get().getConnections().stream().filter(c -> !linkToPointExist(c)).collect(Collectors.toList());
                 if (availableMatch.size() > 0) {
                     queuedPoints.poll();
-                    links.add(new Link(first, availableMatch.get(0)));
+                    sharedData.links.add(new Link(first, availableMatch.get(0), ColorEnum.blue));
+                    sharedData.stepIndex++;
+                    ResultGeneratorUtil.saveMatchingStepToFile(sharedData.stepIndex);
                 } else {
                     List<Point> usedMatch = pointDetail.get().getConnections().stream().filter(this::linkToPointExist).collect(Collectors.toList());
                     for (int i = 0; i < usedMatch.size(); i++) {
@@ -69,32 +72,56 @@ public class MatchingAlg implements AlgorithmInterface {
         }
     }
 
-    private void removeUsedMatch(List<Point> usedMatch) {
+    private void removeUsedMatch(List<Point> usedMatch) throws IOException {
         List<String> usedMatchStrings = usedMatch.stream().map(Point::getValue).collect(Collectors.toList());
-        this.links.stream().filter(c -> usedMatchStrings.contains(c.getTo().getValue())).map(Link::getFrom)
+        List<Link> linksToRemove = sharedData.links.stream().filter(c -> usedMatchStrings.contains(c.getTo().getValue())).collect(Collectors.toList());
+
+        for (int i = 0; i < linksToRemove.size(); i++) {
+            changeColorInLink(linksToRemove.get(i), ColorEnum.yellow);
+            sharedData.stepIndex++;
+            ResultGeneratorUtil.saveMatchingStepToFile(sharedData.stepIndex);
+        }
+
+        linksToRemove.stream().map(Link::getFrom)
                 .forEach(c -> queuedPoints.add(c));
-        links = this.links.stream().filter(c -> !usedMatchStrings.contains(c.getTo().getValue())).collect(Collectors.toList());
+        sharedData.links = sharedData.links.stream().filter(c -> !usedMatchStrings.contains(c.getTo().getValue())).collect(Collectors.toList());
     }
 
-    private boolean tryResolveConflictForPoint(Point usedPoint) {
-        Optional<Link> first = links.stream().filter(c -> c.getTo().getValue().equals(usedPoint.getValue())).findFirst();
+    private boolean tryResolveConflictForPoint(Point usedPoint) throws IOException {
+        Optional<Link> first = sharedData.links.stream().filter(c -> c.getTo().getValue().equals(usedPoint.getValue())).findFirst();
         if (first.isPresent()) {
+            changeColorInLink(first.get(), ColorEnum.red);
+            sharedData.stepIndex++;
+            ResultGeneratorUtil.saveMatchingStepToFile(sharedData.stepIndex);
             Optional<PointDetail> pointDetail = pointDetailList.stream().filter(c -> c.getPoint().getValue().equals(first.get().getFrom().getValue())).findFirst();
             if (pointDetail.isPresent()) {
                 List<Point> availableMatch = pointDetail.get().getConnections().stream().filter(c -> !linkToPointExist(c)).collect(Collectors.toList());
                 if (availableMatch.size() > 0) {
+                    changeColorInLink(first.get(), ColorEnum.blue);
+                    sharedData.stepIndex++;
+                    ResultGeneratorUtil.saveMatchingStepToFile(sharedData.stepIndex);
                     return changeLink(first.get().getFrom(), availableMatch.get(0));
                 }
             }
+            changeColorInLink(first.get(), ColorEnum.blue);
         }
 
         return false;
     }
 
+    private void changeColorInLink(Link link, ColorEnum color) {
+        for (int i = 0; i < sharedData.links.size(); i++) {
+            if (link.getFrom().getValue().equals(sharedData.links.get(i).getFrom().getValue()) &&
+                    link.getTo().getValue().equals(sharedData.links.get(i).getTo().getValue())) {
+                sharedData.links.get(i).setColor(color);
+            }
+        }
+    }
+
     private boolean changeLink(Point from, Point newPoint) {
-        for (int i = 0; i < links.size(); i++) {
-            if (links.get(i).getFrom().getValue().equals(from.getValue())) {
-                links.get(i).setTo(newPoint);
+        for (int i = 0; i < sharedData.links.size(); i++) {
+            if (sharedData.links.get(i).getFrom().getValue().equals(from.getValue())) {
+                sharedData.links.get(i).setTo(newPoint);
                 return true;
             }
         }
@@ -103,7 +130,7 @@ public class MatchingAlg implements AlgorithmInterface {
 
 
     private boolean linkToPointExist(Point to) {
-        return this.links.stream().map(c -> c.getTo().getValue()).collect(Collectors.toList()).contains(to.getValue());
+        return sharedData.links.stream().map(c -> c.getTo().getValue()).collect(Collectors.toList()).contains(to.getValue());
     }
 
 

@@ -1,6 +1,7 @@
 package pl.marcb.steps;
 
 import pl.marcb.model.ColorEnum;
+import pl.marcb.model.Link;
 import pl.marcb.model.Point;
 import pl.marcb.model.PointDetail;
 
@@ -14,6 +15,7 @@ public class SharedData {
     public List<String> lines = new ArrayList<>();
     public List<Point> points = new ArrayList<>();
     public List<String> images = new ArrayList<>();
+    public List<Link> links = new ArrayList<>();
 
     public boolean error = false;
     public long stepIndex = 1;

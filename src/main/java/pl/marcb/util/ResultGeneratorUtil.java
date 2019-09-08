@@ -2,6 +2,8 @@ package pl.marcb.util;
 
 import pl.marcb.Parser;
 import pl.marcb.lib.GifSequenceWriter;
+import pl.marcb.model.ColorEnum;
+import pl.marcb.model.Link;
 import pl.marcb.steps.SharedData;
 
 import javax.imageio.ImageIO;
@@ -14,10 +16,19 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class ResultGeneratorUtil {
     public static void saveBipartiteStepToFile(Long index) throws IOException {
+        saveStepToFile(index, false);
+    }
+
+    public static void saveMatchingStepToFile(Long index) throws IOException {
+        saveStepToFile(index, true);
+    }
+
+    private static void saveStepToFile(Long index, boolean addLines) throws IOException {
         SharedData shared = SharedData.getInstance();
         StringBuilder sb = new StringBuilder();
         sb.append("graph {").append("\n");
@@ -30,7 +41,13 @@ public class ResultGeneratorUtil {
 
         for (int i = 0; i < shared.lines.size(); i++) {
             List<String> line = Arrays.stream(shared.lines.get(i).split(" ")).collect(Collectors.toList());
-            sb.append("\t").append(String.join(" -- ", line)).append("\n");
+            for (int j = 0; j < line.size() - 1; j++) {
+                sb.append("\t").append(String.join(" -- ", Arrays.asList(line.get(j), line.get(j + 1))));
+                if (addLines) {
+                    sb.append(" [color = " + getColorForConnections(line.get(j), line.get(j + 1)).name() + "]");
+                }
+                sb.append("\n");
+            }
         }
         sb.append("}");
 
@@ -40,27 +57,13 @@ public class ResultGeneratorUtil {
                 fileName).parseFile(sb.toString());
     }
 
-    public static void saveMatchingStepToFile(Long index) throws IOException {
-        SharedData shared = SharedData.getInstance();
-        StringBuilder sb = new StringBuilder();
-        sb.append("graph {").append("\n");
-
-        for (int i = 0; i < shared.points.size(); i++) {
-            String value = shared.points.get(i).getValue();
-            sb.append(value + "[color = " + shared.points.get(i).getColor().name() + "]");
+    public static ColorEnum getColorForConnections(String point1, String point2) {
+        Optional<Link> link = SharedData.getInstance().links.stream()
+                .filter(c -> ((c.getFrom().getValue().equals(point1) && c.getTo().getValue().equals(point2)) || (c.getFrom().getValue().equals(point2) && c.getTo().getValue().equals(point1)))).findFirst();
+        if (link.isPresent()) {
+            return link.get().getColor();
         }
-        sb.append("\n\n");
-
-        for (int i = 0; i < shared.lines.size(); i++) {
-            List<String> line = Arrays.stream(shared.lines.get(i).split(" ")).collect(Collectors.toList());
-            sb.append("\t").append(String.join(" -- ", line)).append("\n");
-        }
-        sb.append("}");
-
-        String fileName = "example/result/step-" + index + ".png";
-        shared.images.add(fileName);
-        new Parser("example/result/z-graph-for-step" + index + ".dot",
-                fileName).parseFile(sb.toString());
+        return ColorEnum.gray;
     }
 
     public static void prepareDirectory() {

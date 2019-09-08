@@ -2,6 +2,7 @@ package pl.marcb.steps;
 
 import pl.marcb.model.ColorEnum;
 import pl.marcb.model.Point;
+import pl.marcb.model.PointDetail;
 
 import java.util.ArrayList;
 import java.util.List;

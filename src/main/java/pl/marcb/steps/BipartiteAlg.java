@@ -2,6 +2,7 @@ package pl.marcb.steps;
 
 import pl.marcb.model.ColorEnum;
 import pl.marcb.model.Point;
+import pl.marcb.util.ConnectionUtil;
 import pl.marcb.util.ResultGeneratorUtil;
 
 import java.io.IOException;
@@ -80,36 +81,8 @@ public class BipartiteAlg implements AlgorithmInterface {
     }
 
     private List<Point> getLinksForPointAndFilterByColor(Point point, ColorEnum filteredColor) {
-        return getLinksForPoint(point).stream()
+        return ConnectionUtil.getLinksForPoint(point).stream()
                 .filter(c -> !c.getColor().equals(filteredColor))
                 .collect(Collectors.toList());
     }
-
-    private List<Point> getLinksForPoint(Point point) {
-        Set<String> result = new HashSet<>();
-        sharedData.lines.stream().map(c -> c.split(" "))
-                .filter(c -> Arrays.asList(c).contains(point.getValue()))
-                .forEach(c -> result.addAll(getConnectedPointsInLine(point.getValue(), c)));
-        return result.stream().map(this::getPointByValue).collect(Collectors.toList());
-    }
-
-    private Point getPointByValue(String value) {
-        return sharedData.points.stream().filter(c -> c.getValue().equals(value)).findFirst().orElse(null);
-    }
-
-    private Set<String> getConnectedPointsInLine(String point, String[] line) {
-        Set<String> result = new HashSet<>(); // set for distinct result
-        for (int i = 0; i < line.length; i++) {
-            if (line[i].equals(point)) {
-                if (line.length > i + 1) { // get next point
-                    result.add(line[i + 1]);
-                }
-                if (i - 1 >= 0) { //get previous point
-                    result.add(line[i - 1]);
-                }
-            }
-        }
-        return result;
-    }
-
 }

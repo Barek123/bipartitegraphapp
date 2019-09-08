@@ -1,11 +1,12 @@
 package pl.marcb;
 
 
-import java.io.IOException;
+import pl.marcb.steps.SharedData;
 
 
 public class Main {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws Exception {
+        SharedData.getInstance().path = "example/graph";
         new BfsAlg("example/graph").generate();
     }
 }

@@ -40,6 +40,29 @@ public class ResultGeneratorUtil {
                 fileName).parseFile(sb.toString());
     }
 
+    public static void saveMatchingStepToFile(Long index) throws IOException {
+        SharedData shared = SharedData.getInstance();
+        StringBuilder sb = new StringBuilder();
+        sb.append("graph {").append("\n");
+
+        for (int i = 0; i < shared.points.size(); i++) {
+            String value = shared.points.get(i).getValue();
+            sb.append(value + "[color = " + shared.points.get(i).getColor().name() + "]");
+        }
+        sb.append("\n\n");
+
+        for (int i = 0; i < shared.lines.size(); i++) {
+            List<String> line = Arrays.stream(shared.lines.get(i).split(" ")).collect(Collectors.toList());
+            sb.append("\t").append(String.join(" -- ", line)).append("\n");
+        }
+        sb.append("}");
+
+        String fileName = "example/result/step-" + index + ".png";
+        shared.images.add(fileName);
+        new Parser("example/result/z-graph-for-step" + index + ".dot",
+                fileName).parseFile(sb.toString());
+    }
+
     public static void prepareDirectory() {
         Path path = Paths.get("example/result");
         if (path.toFile().exists()) {

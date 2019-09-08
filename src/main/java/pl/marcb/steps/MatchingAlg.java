@@ -5,6 +5,5 @@ public class MatchingAlg implements AlgorithmInterface {
 
     @Override
     public void generate() {
-
     }
 }

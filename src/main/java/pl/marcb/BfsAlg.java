@@ -1,6 +1,7 @@
 package pl.marcb;
 
 import pl.marcb.steps.BipartiteAlg;
+import pl.marcb.steps.MatchingAlg;
 import pl.marcb.steps.SharedData;
 import pl.marcb.util.ResultGeneratorUtil;
 
@@ -20,6 +21,7 @@ public class BfsAlg {
 
     void generate() throws Exception {
         new BipartiteAlg().generate();
+        new MatchingAlg().generate();
         ResultGeneratorUtil.createGif();
     }
 }

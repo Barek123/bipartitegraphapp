@@ -58,13 +58,25 @@ public class MatchingAlg implements AlgorithmInterface {
                     sharedData.stepIndex++;
                     ResultGeneratorUtil.saveMatchingStepToFile(sharedData.stepIndex);
                 } else {
+                    ColorEnum oldColor = first.getColor();
+                    changeColorInPoint(first, ColorEnum.yellow);
+                    sharedData.stepIndex++;
+                    ResultGeneratorUtil.saveMatchingStepToFile(sharedData.stepIndex);
+
                     List<Point> usedMatch = pointDetail.get().getConnections().stream().filter(this::linkToPointExist).collect(Collectors.toList());
                     for (int i = 0; i < usedMatch.size(); i++) {
                         boolean resolved = tryResolveConflictForPoint(usedMatch.get(i));
                         if (resolved) {
+                            changeColorInPoint(first, oldColor);
+                            sharedData.stepIndex++;
+                            ResultGeneratorUtil.saveMatchingStepToFile(sharedData.stepIndex);
                             i = usedMatch.size(); // exit
                         }
                     }
+
+                    changeColorInPoint(first, oldColor);
+                    sharedData.stepIndex++;
+                    ResultGeneratorUtil.saveMatchingStepToFile(sharedData.stepIndex);
 
                     removeUsedMatch(usedMatch);
                 }
@@ -114,6 +126,14 @@ public class MatchingAlg implements AlgorithmInterface {
             if (link.getFrom().getValue().equals(sharedData.links.get(i).getFrom().getValue()) &&
                     link.getTo().getValue().equals(sharedData.links.get(i).getTo().getValue())) {
                 sharedData.links.get(i).setColor(color);
+            }
+        }
+    }
+
+    private void changeColorInPoint(Point point, ColorEnum color) {
+        for (int i = 0; i < sharedData.points.size(); i++) {
+            if (sharedData.points.get(i).getValue().equals(point.getValue())) {
+                sharedData.points.get(i).setColor(color);
             }
         }
     }

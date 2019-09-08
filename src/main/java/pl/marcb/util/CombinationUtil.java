@@ -19,7 +19,7 @@ public class CombinationUtil {
         String[] array = new String[list.size()];
         array = list.toArray(array);
 
-        for (int i = 1; i < list.size(); i++) {
+        for (int i = 1; i <= list.size(); i++) {
             combinations(array, i, 0, new String[i]);
         }
         return resultCombinations;

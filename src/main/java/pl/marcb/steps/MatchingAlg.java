@@ -6,8 +6,7 @@ import pl.marcb.model.PointDetail;
 import pl.marcb.util.CombinationUtil;
 import pl.marcb.util.ConnectionUtil;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class MatchingAlg implements AlgorithmInterface {
@@ -21,16 +20,32 @@ public class MatchingAlg implements AlgorithmInterface {
         pointDetailList = createPointDetails();
         connectionFromType = getConnectionFromType();
         combinations = getCombinationsForColor(connectionFromType);
+        boolean availableMatching = checkConnections();
+        System.out.println("matching availability = " + availableMatching);
 
     }
 
     private boolean checkConnections() {
-
-        return false;
+        List<Boolean> result = this.combinations.stream().map(this::checkConnectionForPoints).collect(Collectors.toList());
+        return result.stream().allMatch(c -> c);
     }
-    private boolean checkConnectionForPoints(List<String> list) {
 
-        return false;
+    private boolean checkConnectionForPoints(List<String> list) {
+        System.out.println("check for elements " + list.toString());
+        Set<String> distinctPoints = new HashSet<>();
+        list.forEach(c -> distinctPoints.addAll(getConnectionsForPoint(c)));
+        System.out.println("\tavailable connections " + distinctPoints.toString());
+        boolean result = list.size() <= distinctPoints.size();
+        System.out.println("\t" + list.toString() + " size is " + ((result) ? "smaller or equal" : "bigger" ) + " than " + distinctPoints.toString());
+        System.out.println("\t\t" + ((result) ? "correct " : "incorrect" ));
+        System.out.println();
+        return result;
+    }
+
+    private List<String> getConnectionsForPoint(String point) {
+        Optional<PointDetail> first = this.pointDetailList.stream().filter(c -> point.equals(c.getPoint().getValue())).findFirst();
+        return first.map(pointDetail -> pointDetail.getConnections().stream().map(Point::getValue).collect(Collectors.toList()))
+                .orElseGet(ArrayList::new);
     }
 
     private List<List<String>> getCombinationsForColor(ColorEnum color) {

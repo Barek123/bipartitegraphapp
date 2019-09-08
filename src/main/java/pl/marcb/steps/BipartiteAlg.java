@@ -44,8 +44,13 @@ public class BipartiteAlg implements AlgorithmInterface {
         }
     }
 
-    private void handleSuccess() {
-        System.out.println("finished graph is bipartite");
+    private void handleSuccess() throws IOException {
+        Optional<Point> first = sharedData.points.stream().filter(c -> c.getColor().equals(SharedData.DEFAULT_COLOR)).findFirst();
+        if (first.isPresent()) {
+            nextStep(first.get());
+        } else {
+            System.out.println("finished graph is bipartite");
+        }
     }
 
     private void checkConnectedPoints(List<Point> linksForPoint, ColorEnum color) throws IOException {

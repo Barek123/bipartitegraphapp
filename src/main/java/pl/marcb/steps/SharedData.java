@@ -25,6 +25,8 @@ public class SharedData {
     static ColorEnum COLOR_1 = ColorEnum.blue;
     static ColorEnum COLOR_2 = ColorEnum.green;
     static ColorEnum ERROR_COLOR = ColorEnum.red;
+    static ColorEnum CONNECTED_LINK = ColorEnum.blue;
+    static ColorEnum PROCESSING_COLOR = ColorEnum.yellow;
 
     private SharedData() {
     }
